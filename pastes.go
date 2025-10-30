@@ -1,6 +1,7 @@
 package gopastemyst
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,9 +10,6 @@ import (
 	"time"
 )
 
-// Currently only checking some fields.
-
-// TODO: Add more fields based on the responses
 // Check https://docs.beta.myst.rs/pastes
 
 type APIError struct {
@@ -29,9 +27,7 @@ type Pasty struct {
 	Language string `json:"language"`
 }
 
-// TODO: Continue from here tomorrow and make a working
-//
-//	Struct for each Paste
+// Struct for each Paste
 type Paste struct {
 	// Non-Nullable fields
 	ID        string    `json:"id"`
@@ -61,6 +57,23 @@ type Stats struct {
 	Lines   int                   `json:"lines"`
 	Pasties map[string]PastyStats `json:"pasties"`
 	Words   int                   `json:"words"`
+}
+
+type CreatePastyOptions struct {
+	Title    string `json:"title,omitempty"`
+	Content  string `json:"content"`
+	Language string `json:"language,omitempty"`
+}
+
+type CreatePasteOptions struct {
+	Title     string               `json:"title,omitempty"`
+	ExpiresIn string               `json:"expiresIn,omitempty"`
+	Anonymous bool                 `json:"anonymous,omitempty"`
+	Private   bool                 `json:"private,omitempty"`
+	Pinned    bool                 `json:"pinned,omitempty"`
+	Encrypted bool                 `json:"encrypted,omitempty"`
+	Tags      []string             `json:"tags,omitempty"`
+	Pasties   []CreatePastyOptions `json:"pasties"`
 }
 
 func (c *Client) GetPaste(ctx context.Context, pasteID string) (*Paste, error) {
@@ -137,4 +150,51 @@ func (c *Client) GetPasteStats(ctx context.Context, pasteID string) (*Stats, err
 	}
 
 	return &stats, nil
+}
+
+func (c *Client) CreatePaste(ctx context.Context, options CreatePasteOptions) (*Paste, error) {
+	if len(options.Pasties) == 0 {
+		return nil, fmt.Errorf("at least one pasty should be present")
+	}
+
+	// Converting the struct into JSON data
+	jsonData, err := json.Marshal(options)
+	if err != nil {
+		return nil, fmt.Errorf("could not marshal paste options: %w", err)
+	}
+
+	// Creating the request
+	url := fmt.Sprintf("%s/pastes", c.baseURL)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("could not create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if c.apiToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.apiToken)
+	}
+
+	// Executing the request
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("http request failed: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusCreated {
+		var apiError APIError
+		if err := json.NewDecoder(res.Body).Decode(&apiError); err != nil {
+			return nil, fmt.Errorf("api error (%s): %s", res.Status, apiError.StatusMessage)
+		}
+		return nil, fmt.Errorf("api returned non-201 status: %s", res.Status)
+	}
+
+	var newPaste Paste
+	if err := json.NewDecoder(res.Body).Decode(&newPaste); err != nil {
+		return nil, fmt.Errorf("could not decode json response: %w", err)
+	}
+
+	return &newPaste, nil
 }
