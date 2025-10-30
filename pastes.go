@@ -50,7 +50,19 @@ type Paste struct {
 	DeletesAt *time.Time `json:"deletesAt"`
 }
 
-// TODO: Work on this after defining the structure of a Paste
+type PastyStats struct {
+	Bytes int `json:"bytes"`
+	Lines int `json:"lines"`
+	Words int `json:"words"`
+}
+
+type Stats struct {
+	Bytes   int                   `json:"bytes"`
+	Lines   int                   `json:"lines"`
+	Pasties map[string]PastyStats `json:"pasties"`
+	Words   int                   `json:"words"`
+}
+
 func (c *Client) GetPaste(ctx context.Context, pasteID string) (*Paste, error) {
 	url := fmt.Sprintf("%s/pastes/%s", c.baseURL, pasteID)
 
@@ -87,4 +99,42 @@ func (c *Client) GetPaste(ctx context.Context, pasteID string) (*Paste, error) {
 	}
 
 	return &paste, nil
+}
+
+func (c *Client) GetPasteStats(ctx context.Context, pasteID string) (*Stats, error) {
+	url := fmt.Sprintf("%s/pastes/%s/stats", c.baseURL, pasteID)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not create request: %w", err)
+	}
+
+	res, err := c.httpClient.Do(req)
+
+	if err != nil {
+		return nil, fmt.Errorf("http request failed : %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		var apiError APIError
+
+		if err := json.NewDecoder(res.Body).Decode(&apiError); err == nil {
+			return nil, fmt.Errorf("API Error (%s): %s", res.Status, apiError.StatusMessage)
+		}
+
+		bodyBytes, err := io.ReadAll(res.Body)
+		if err != nil {
+			return nil, fmt.Errorf("API returned non-200 status: %s, (body %s)",
+				res.Status, string(bodyBytes))
+		}
+	}
+
+	var stats Stats
+	if err := json.NewDecoder(res.Body).Decode(&stats); err != nil {
+		return nil, fmt.Errorf("could not decode JSON response: %w", err)
+	}
+
+	return &stats, nil
 }
