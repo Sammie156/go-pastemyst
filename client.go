@@ -6,7 +6,7 @@ import (
 )
 
 // Current endpoint for V3 API
-const BaseURL = "https://paste.myst.rs/api/v3"
+const BaseURL = "https://beta.myst.rs/api/v3"
 
 type Client struct {
 	baseURL    string
@@ -14,7 +14,7 @@ type Client struct {
 	httpClient *http.Client
 }
 
-func newClient(apiToken string) *Client {
+func NewClient(apiToken string) *Client {
 	return &Client{
 		baseURL:  BaseURL,
 		apiToken: apiToken,
