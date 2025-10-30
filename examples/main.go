@@ -83,4 +83,12 @@ func main() {
 		fmt.Printf("History ID: %s\n", pastyHistory.ID)
 	}
 
+	pasteEdit, err := client.GetPasteAtSpecificEdit(ctx, "1shjmsu7", "elxicu7b")
+	if err != nil {
+		log.Fatalf("Failed to get specific edit of paste: %v", err)
+	}
+
+	for _, pasty := range pasteEdit.Pasties {
+		fmt.Printf("ID: %s, Content: %s\n", pasty.ID, pasty.Content)
+	}
 }

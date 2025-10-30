@@ -292,3 +292,40 @@ func (c *Client) GetCompactPasteHistory(ctx context.Context, pasteID string) ([]
 
 	return compactPasteHistory, nil
 }
+
+func (c *Client) GetPasteAtSpecificEdit(ctx context.Context, pasteID string, historyID string) (*Paste, error) {
+	url := fmt.Sprintf("%s/pastes/%s/history/%s", c.baseURL, pasteID, historyID)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("could not create request: %w", err)
+	}
+
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("http request failed: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		var apiError APIError
+
+		if err := json.NewDecoder(res.Body).Decode(&apiError); err == nil {
+			return nil, fmt.Errorf("API Error (%s) : %s", res.Status, apiError.StatusMessage)
+		}
+
+		bodyBytes, err := io.ReadAll(res.Body)
+		if err != nil {
+			return nil, fmt.Errorf("API returned non-200 status: %s, (body %s)",
+				res.Status, string(bodyBytes))
+		}
+	}
+
+	var paste Paste
+
+	if err := json.NewDecoder(res.Body).Decode(&paste); err != nil {
+		return nil, fmt.Errorf("could not decode JSON: %w", err)
+	}
+
+	return &paste, nil
+}
