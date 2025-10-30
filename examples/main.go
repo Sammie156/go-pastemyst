@@ -43,26 +43,35 @@ func main() {
 	// 	fmt.Printf("Pasty ID: %s, Lines: %d, Words: %d\n", pastyID, pasty.Lines, pasty.Words)
 	// }
 
-	pasty := gopastemyst.CreatePastyOptions{
-		Title:    "API Test",
-		Content:  "Testing API Calling",
-		Language: "text",
-	}
+	// pasty := gopastemyst.CreatePastyOptions{
+	// 	Title:    "API Test",
+	// 	Content:  "Testing API Calling",
+	// 	Language: "text",
+	// }
 
-	options := gopastemyst.CreatePasteOptions{
-		Title:     "My Private Go API Test",
-		ExpiresIn: "1h",
-		Private:   true,
-		Pasties:   []gopastemyst.CreatePastyOptions{pasty},
-	}
+	// options := gopastemyst.CreatePasteOptions{
+	// 	Title:     "My Private Go API Test",
+	// 	ExpiresIn: "1h",
+	// 	Private:   true,
+	// 	Pasties:   []gopastemyst.CreatePastyOptions{pasty},
+	// }
 
-	log.Println("Attempting to create Paste")
-	newPaste, err := client.CreatePaste(ctx, options)
+	// log.Println("Attempting to create Paste")
+	// newPaste, err := client.CreatePaste(ctx, options)
 
+	// if err != nil {
+	// 	log.Fatalf("Failed to create paste: %v", err)
+	// }
+
+	// fmt.Printf("Created Paste! ID: %s\n", newPaste.ID)
+
+	pasteStats, err := client.GetPasteLanguageStats(ctx, "1shjmsu7")
 	if err != nil {
-		log.Fatalf("Failed to create paste: %v", err)
+		log.Fatalf("Failed to get paste: %v", err)
 	}
 
-	fmt.Printf("Created Paste! ID: %s\n", newPaste.ID)
+	for _, pastiesStat := range pasteStats {
+		fmt.Printf("Language Name: %s, Percentage: %f\n", pastiesStat.Language.Name, pastiesStat.Percentage)
+	}
 
 }

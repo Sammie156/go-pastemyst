@@ -12,6 +12,8 @@ import (
 
 // Check https://docs.beta.myst.rs/pastes
 
+// TODO: Add documentation to each struct type and function
+
 type APIError struct {
 	StatusMessage string `json:"statusMessage"`
 }
@@ -27,7 +29,6 @@ type Pasty struct {
 	Language string `json:"language"`
 }
 
-// Struct for each Paste
 type Paste struct {
 	// Non-Nullable fields
 	ID        string    `json:"id"`
@@ -74,6 +75,22 @@ type CreatePasteOptions struct {
 	Encrypted bool                 `json:"encrypted,omitempty"`
 	Tags      []string             `json:"tags,omitempty"`
 	Pasties   []CreatePastyOptions `json:"pasties"`
+}
+
+type LanguageStats struct {
+	Aliases            []string `json:"aliases"`
+	CodemirrorMimeType string   `json:"codemirrorMimeType"`
+	CodemirrorMode     string   `json:"codemirrorMode"`
+	Color              string   `json:"color"`
+	Extensions         []string `json:"extensions"`
+	Name               string   `json:"name"`
+	TmScope            string   `json:"tmScope"`
+	Wrap               bool     `json:"wrap"`
+}
+
+type PasteLanguageStats struct {
+	Language   LanguageStats `json:"language"`
+	Percentage float64       `json:"percentage"`
 }
 
 func (c *Client) GetPaste(ctx context.Context, pasteID string) (*Paste, error) {
@@ -197,4 +214,41 @@ func (c *Client) CreatePaste(ctx context.Context, options CreatePasteOptions) (*
 	}
 
 	return &newPaste, nil
+}
+
+func (c *Client) GetPasteLanguageStats(ctx context.Context, pasteID string) ([]PasteLanguageStats, error) {
+	url := fmt.Sprintf("%s/pastes/%s/langs", c.baseURL, pasteID)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("could not create request: %w", err)
+	}
+
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("http request failed: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		var apiError APIError
+
+		if err := json.NewDecoder(res.Body).Decode(&apiError); err == nil {
+			return nil, fmt.Errorf("API Error (%s) : %s", res.Status, apiError.StatusMessage)
+		}
+
+		bodyBytes, err := io.ReadAll(res.Body)
+		if err != nil {
+			return nil, fmt.Errorf("API returned non-200 status: %s, (body %s)",
+				res.Status, string(bodyBytes))
+		}
+	}
+
+	var pasteLangStats []PasteLanguageStats
+
+	if err := json.NewDecoder(res.Body).Decode(&pasteLangStats); err != nil {
+		return nil, fmt.Errorf("could not decode JSON response: %w", err)
+	}
+
+	return pasteLangStats, nil
 }
