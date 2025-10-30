@@ -74,4 +74,13 @@ func main() {
 		fmt.Printf("Language Name: %s, Percentage: %f\n", pastiesStat.Language.Name, pastiesStat.Percentage)
 	}
 
+	pasteHistory, err := client.GetCompactPasteHistory(ctx, "1shjmsu7")
+	if err != nil {
+		log.Fatalf("Failed to get paste history: %v", err)
+	}
+
+	for _, pastyHistory := range pasteHistory {
+		fmt.Printf("History ID: %s\n", pastyHistory.ID)
+	}
+
 }

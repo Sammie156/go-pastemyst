@@ -93,6 +93,11 @@ type PasteLanguageStats struct {
 	Percentage float64       `json:"percentage"`
 }
 
+type CompactPasteHistory struct {
+	EditedAt time.Time `json:"editedAt"`
+	ID       string    `json:"id"`
+}
+
 func (c *Client) GetPaste(ctx context.Context, pasteID string) (*Paste, error) {
 	url := fmt.Sprintf("%s/pastes/%s", c.baseURL, pasteID)
 
@@ -251,4 +256,39 @@ func (c *Client) GetPasteLanguageStats(ctx context.Context, pasteID string) ([]P
 	}
 
 	return pasteLangStats, nil
+}
+
+func (c *Client) GetCompactPasteHistory(ctx context.Context, pasteID string) ([]CompactPasteHistory, error) {
+	url := fmt.Sprintf("%s/pastes/%s/history_compact", c.baseURL, pasteID)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("could not create request: %w", err)
+	}
+
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("http request failed: %w", err)
+	}
+
+	if res.StatusCode != http.StatusOK {
+		var apiError APIError
+
+		if err := json.NewDecoder(res.Body).Decode(&apiError); err == nil {
+			return nil, fmt.Errorf("API Error (%s) : %s", res.Status, apiError.StatusMessage)
+		}
+
+		bodyBytes, err := io.ReadAll(res.Body)
+		if err != nil {
+			return nil, fmt.Errorf("API returned non-200 status: %s, (body %s)",
+				res.Status, string(bodyBytes))
+		}
+	}
+
+	var compactPasteHistory []CompactPasteHistory
+	if err := json.NewDecoder(res.Body).Decode(&compactPasteHistory); err != nil {
+		return nil, fmt.Errorf("could not decode JSON response: %w", err)
+	}
+
+	return compactPasteHistory, nil
 }
