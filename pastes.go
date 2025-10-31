@@ -47,6 +47,12 @@ type Paste struct {
 	DeletesAt *time.Time `json:"deletesAt"`
 }
 
+type PasteDiff struct {
+	CurrentPaste Paste `json:"currentPaste"`
+	NewPaste     Paste `json:"newPaste"`
+	OldPaste     Paste `json:"oldPaste"`
+}
+
 type PastyStats struct {
 	Bytes int `json:"bytes"`
 	Lines int `json:"lines"`
@@ -328,4 +334,40 @@ func (c *Client) GetPasteAtSpecificEdit(ctx context.Context, pasteID string, his
 	}
 
 	return &paste, nil
+}
+
+func (c *Client) GetDiffAtCertainEdit(ctx context.Context, pasteID string, historyID string) (*PasteDiff, error) {
+	url := fmt.Sprintf("%s/pastes/%s/history/%s/diff", c.baseURL, pasteID, historyID)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("could not create http request: %w", err)
+	}
+
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("http request failed: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		var apiError APIError
+
+		if err := json.NewDecoder(res.Body).Decode(&apiError); err == nil {
+			return nil, fmt.Errorf("API Error (%s) : %s", res.Status, apiError.StatusMessage)
+		}
+
+		bodyBytes, err := io.ReadAll(res.Body)
+		if err != nil {
+			return nil, fmt.Errorf("API returned non-200 status: %s, (body %s)",
+				res.Status, string(bodyBytes))
+		}
+	}
+
+	var pasteDiff PasteDiff
+	if err := json.NewDecoder(res.Body).Decode(&pasteDiff); err != nil {
+		return nil, fmt.Errorf("could not decode JSON: %w", err)
+	}
+
+	return &pasteDiff, nil
 }

@@ -22,73 +22,8 @@ func main() {
 	client := gopastemyst.NewClient(token)
 	ctx := context.Background()
 
-	// paste, err := client.GetPaste(context.Background(), pasteID)
-	// if err != nil {
-	// 	log.Fatalf("Failed to get paste: %v", err)
-	// }
+	pasteDiff, err := client.GetDiffAtCertainEdit(ctx, "1shjmsu7", "l051n8gw")
 
-	// fmt.Printf("Got paste! Title: %s\n", paste.Title)
-
-	// for _, pasty := range paste.Pasties {
-	// 	fmt.Printf("Pasty ID: %s, Language: %s, Title: %s\n", pasty.ID, pasty.Language, pasty.Title)
-	// 	// fmt.Printf("Pasty Content : %s\n", pasty.Content)
-	// }
-
-	// stats, err := client.GetPasteStats(context.Background(), pasteID)
-	// if err != nil {
-	// 	log.Fatalf("Failed to get paste stats: %v", err)
-	// }
-
-	// for pastyID, pasty := range stats.Pasties {
-	// 	fmt.Printf("Pasty ID: %s, Lines: %d, Words: %d\n", pastyID, pasty.Lines, pasty.Words)
-	// }
-
-	// pasty := gopastemyst.CreatePastyOptions{
-	// 	Title:    "API Test",
-	// 	Content:  "Testing API Calling",
-	// 	Language: "text",
-	// }
-
-	// options := gopastemyst.CreatePasteOptions{
-	// 	Title:     "My Private Go API Test",
-	// 	ExpiresIn: "1h",
-	// 	Private:   true,
-	// 	Pasties:   []gopastemyst.CreatePastyOptions{pasty},
-	// }
-
-	// log.Println("Attempting to create Paste")
-	// newPaste, err := client.CreatePaste(ctx, options)
-
-	// if err != nil {
-	// 	log.Fatalf("Failed to create paste: %v", err)
-	// }
-
-	// fmt.Printf("Created Paste! ID: %s\n", newPaste.ID)
-
-	pasteStats, err := client.GetPasteLanguageStats(ctx, "1shjmsu7")
-	if err != nil {
-		log.Fatalf("Failed to get paste: %v", err)
-	}
-
-	for _, pastiesStat := range pasteStats {
-		fmt.Printf("Language Name: %s, Percentage: %f\n", pastiesStat.Language.Name, pastiesStat.Percentage)
-	}
-
-	pasteHistory, err := client.GetCompactPasteHistory(ctx, "1shjmsu7")
-	if err != nil {
-		log.Fatalf("Failed to get paste history: %v", err)
-	}
-
-	for _, pastyHistory := range pasteHistory {
-		fmt.Printf("History ID: %s\n", pastyHistory.ID)
-	}
-
-	pasteEdit, err := client.GetPasteAtSpecificEdit(ctx, "1shjmsu7", "elxicu7b")
-	if err != nil {
-		log.Fatalf("Failed to get specific edit of paste: %v", err)
-	}
-
-	for _, pasty := range pasteEdit.Pasties {
-		fmt.Printf("ID: %s, Content: %s\n", pasty.ID, pasty.Content)
-	}
+	fmt.Printf("Old Paste: %s\n", pasteDiff.OldPaste.Pasties[2].Content)
+	fmt.Printf("New Paste: %s\n", pasteDiff.NewPaste.Pasties[2].Content)
 }
