@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -370,4 +371,124 @@ func (c *Client) GetDiffAtCertainEdit(ctx context.Context, pasteID string, histo
 	}
 
 	return &pasteDiff, nil
+}
+
+func (c *Client) DownloadPasteAsZip(ctx context.Context, pasteID string) ([]byte, error) {
+	url := fmt.Sprintf("%s/pastes/%s.zip", c.baseURL, pasteID)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("could not create http request: %w", err)
+	}
+
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("http request failed: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		var apiError APIError
+
+		if err := json.NewDecoder(res.Body).Decode(&apiError); err == nil {
+			return nil, fmt.Errorf("API Error (%s) : %s", res.Status, apiError.StatusMessage)
+		}
+
+		bodyBytes, err := io.ReadAll(res.Body)
+		if err != nil {
+			return nil, fmt.Errorf("API returned non-200 status: %s, (body %s)",
+				res.Status, string(bodyBytes))
+		}
+	}
+
+	zipData, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	return zipData, nil
+}
+
+func (c *Client) IsPasteEncrypted(ctx context.Context, pasteID string) (bool, error) {
+	url := fmt.Sprintf("%s/pastes/%s/encrypted", c.baseURL, pasteID)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return false, fmt.Errorf("could not create http request: %w", err)
+	}
+
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return false, fmt.Errorf("http request failed: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		var apiError APIError
+
+		if err := json.NewDecoder(res.Body).Decode(&apiError); err == nil {
+			return false, fmt.Errorf("API Error (%s) : %s", res.Status, apiError.StatusMessage)
+		}
+
+		bodyBytes, err := io.ReadAll(res.Body)
+		if err != nil {
+			return false, fmt.Errorf("API returned non-200 status: %s, (body %s)",
+				res.Status, string(bodyBytes))
+		}
+	}
+
+	bodyBytes, err := io.ReadAll(res.Body)
+	if err != nil {
+		return false, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	isEncrypted, err := strconv.ParseBool(string(bodyBytes))
+	if err != nil {
+		return false, fmt.Errorf("api returned non-boolean value: %s", string(bodyBytes))
+	}
+
+	return isEncrypted, nil
+}
+
+func (c *Client) IsPasteStarred(ctx context.Context, pasteID string) (bool, error) {
+	url := fmt.Sprintf("%s/pastes/%s/star", c.baseURL, pasteID)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return false, fmt.Errorf("could not create http request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.apiToken)
+
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return false, fmt.Errorf("http request failed: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		var apiError APIError
+
+		if err := json.NewDecoder(res.Body).Decode(&apiError); err == nil {
+			return false, fmt.Errorf("API Error (%s) : %s", res.Status, apiError.StatusMessage)
+		}
+
+		bodyBytes, err := io.ReadAll(res.Body)
+		if err != nil {
+			return false, fmt.Errorf("API returned non-200 status: %s, (body %s)",
+				res.Status, string(bodyBytes))
+		}
+	}
+
+	bodyBytes, err := io.ReadAll(res.Body)
+	if err != nil {
+		return false, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	isStarred, err := strconv.ParseBool(string(bodyBytes))
+	fmt.Printf("Body Bytes: %s\n", string(bodyBytes))
+	if err != nil {
+		return false, fmt.Errorf("api returned non-boolean value: %s", string(bodyBytes))
+	}
+
+	return isStarred, nil
 }
