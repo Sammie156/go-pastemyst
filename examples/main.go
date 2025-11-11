@@ -22,6 +22,6 @@ func main() {
 	client := gopastemyst.NewClient(token)
 	ctx := context.Background()
 
-	isEncrypted, _ := client.IsPasteStarred(ctx, "l0xh9ntp")
-	fmt.Printf("%t", isEncrypted)
+	UserDetail, err := client.GetUser(ctx, "Sammie156")
+	fmt.Printf("%s", UserDetail.ID)
 }

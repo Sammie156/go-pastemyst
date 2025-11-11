@@ -23,3 +23,11 @@ func NewClient(apiToken string) *Client {
 		},
 	}
 }
+
+type APIError struct {
+	StatusMessage string `json:"statusMessage"`
+}
+
+func (e APIError) Error() string {
+	return e.StatusMessage
+}

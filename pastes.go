@@ -15,14 +15,6 @@ import (
 
 // TODO: Add documentation to each struct type and function
 
-type APIError struct {
-	StatusMessage string `json:"statusMessage"`
-}
-
-func (e APIError) Error() string {
-	return e.StatusMessage
-}
-
 type Pasty struct {
 	ID       string `json:"id"`
 	Title    string `json:"title"`
@@ -492,3 +484,7 @@ func (c *Client) IsPasteStarred(ctx context.Context, pasteID string) (bool, erro
 
 	return isStarred, nil
 }
+
+// TODO: Get back to this and finish all Paste endpoints
+
+// func (c *Client) StarPaste(ctx context.Context, pasteID string) (bool, error) {}
