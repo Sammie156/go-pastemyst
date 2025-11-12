@@ -6,19 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 )
 
 // Check : https://docs.beta.myst.rs/users
-
-type User struct {
-	AvatarID      string    `json:"avatarId"`
-	CreatedAt     time.Time `json:"createdAt"`
-	ID            string    `json:"id"`
-	IsAdmin       bool      `json:"isAdmin"`
-	IsContributor bool      `json:"isContributor"`
-	Username      string    `json:"username"`
-}
 
 func (c *Client) GetUser(ctx context.Context, username string) (*User, error) {
 	url := fmt.Sprintf("%s/users/%s", c.baseURL, username)
@@ -54,3 +44,5 @@ func (c *Client) GetUser(ctx context.Context, username string) (*User, error) {
 
 	return &user, nil
 }
+
+// func (c *Client)

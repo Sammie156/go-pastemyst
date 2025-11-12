@@ -8,94 +8,11 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 // Check https://docs.beta.myst.rs/pastes
 
 // TODO: Add documentation to each struct type and function
-
-type Pasty struct {
-	ID       string `json:"id"`
-	Title    string `json:"title"`
-	Content  string `json:"content"`
-	Language string `json:"language"`
-}
-
-type Paste struct {
-	// Non-Nullable fields
-	ID        string    `json:"id"`
-	Title     string    `json:"title"`
-	CreatedAt time.Time `json:"createdAt"`
-	ExpiresIn string    `json:"expiresIn"`
-	Pinned    bool      `json:"pinned"`
-	Private   bool      `json:"private"`
-	Stars     int       `json:"stars"`
-	Tags      []string  `json:"tags"`
-	Pasties   []Pasty   `json:"pasties"`
-
-	// Nullable fields
-	OwnerID   *string    `json:"ownerID"`
-	EditedAt  *time.Time `json:"editedAt"`
-	DeletesAt *time.Time `json:"deletesAt"`
-}
-
-type PasteDiff struct {
-	CurrentPaste Paste `json:"currentPaste"`
-	NewPaste     Paste `json:"newPaste"`
-	OldPaste     Paste `json:"oldPaste"`
-}
-
-type PastyStats struct {
-	Bytes int `json:"bytes"`
-	Lines int `json:"lines"`
-	Words int `json:"words"`
-}
-
-type Stats struct {
-	Bytes   int                   `json:"bytes"`
-	Lines   int                   `json:"lines"`
-	Pasties map[string]PastyStats `json:"pasties"`
-	Words   int                   `json:"words"`
-}
-
-type CreatePastyOptions struct {
-	Title    string `json:"title,omitempty"`
-	Content  string `json:"content"`
-	Language string `json:"language,omitempty"`
-}
-
-type CreatePasteOptions struct {
-	Title     string               `json:"title,omitempty"`
-	ExpiresIn string               `json:"expiresIn,omitempty"`
-	Anonymous bool                 `json:"anonymous,omitempty"`
-	Private   bool                 `json:"private,omitempty"`
-	Pinned    bool                 `json:"pinned,omitempty"`
-	Encrypted bool                 `json:"encrypted,omitempty"`
-	Tags      []string             `json:"tags,omitempty"`
-	Pasties   []CreatePastyOptions `json:"pasties"`
-}
-
-type LanguageStats struct {
-	Aliases            []string `json:"aliases"`
-	CodemirrorMimeType string   `json:"codemirrorMimeType"`
-	CodemirrorMode     string   `json:"codemirrorMode"`
-	Color              string   `json:"color"`
-	Extensions         []string `json:"extensions"`
-	Name               string   `json:"name"`
-	TmScope            string   `json:"tmScope"`
-	Wrap               bool     `json:"wrap"`
-}
-
-type PasteLanguageStats struct {
-	Language   LanguageStats `json:"language"`
-	Percentage float64       `json:"percentage"`
-}
-
-type CompactPasteHistory struct {
-	EditedAt time.Time `json:"editedAt"`
-	ID       string    `json:"id"`
-}
 
 func (c *Client) GetPaste(ctx context.Context, pasteID string) (*Paste, error) {
 	url := fmt.Sprintf("%s/pastes/%s", c.baseURL, pasteID)
@@ -487,4 +404,92 @@ func (c *Client) IsPasteStarred(ctx context.Context, pasteID string) (bool, erro
 
 // TODO: Get back to this and finish all Paste endpoints
 
-// func (c *Client) StarPaste(ctx context.Context, pasteID string) (bool, error) {}
+func (c *Client) StarPaste(ctx context.Context, pasteID string) error {
+	url := fmt.Sprintf("%s/pastes/%s/star", c.baseURL, pasteID)
+
+	if c.apiToken == "" {
+		return fmt.Errorf("please provide API token")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBufferString(""))
+	if err != nil {
+		return fmt.Errorf("could not create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.apiToken)
+
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("http request failed: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		var apiError APIError
+		if err := json.NewDecoder(res.Body).Decode(&apiError); err != nil {
+			return fmt.Errorf("api error (%s): %s", res.Status, apiError.StatusMessage)
+		}
+
+		return fmt.Errorf("api returned non-204 status : %s", res.Status)
+	}
+
+	return nil
+}
+
+func (c *Client) PinPaste(ctx context.Context, pasteID string) error {
+	url := fmt.Sprintf("%s/pastes/%s/pin", c.baseURL, pasteID)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBufferString(""))
+	if err != nil {
+		return fmt.Errorf("could not create http request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.apiToken)
+
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("http request failed: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		var apiError APIError
+
+		if err := json.NewDecoder(res.Body).Decode(&apiError); err != nil {
+			return fmt.Errorf("api error (%s) : %s", res.Status, apiError.StatusMessage)
+		}
+
+		return fmt.Errorf("api error (%s): %s", res.Status, apiError.StatusMessage)
+	}
+
+	return nil
+}
+
+func (c *Client) PrivatePaste(ctx context.Context, pasteID string) error {
+	url := fmt.Sprintf("%s/pastes/%s/private", c.baseURL, pasteID)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBufferString(""))
+	if err != nil {
+		return fmt.Errorf("could not create http request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.apiToken)
+
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("http request failed: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		var apiError APIError
+
+		if err := json.NewDecoder(res.Body).Decode(&apiError); err != nil {
+			return fmt.Errorf("api error (%s) : %s", res.Status, apiError.StatusMessage)
+		}
+
+		return fmt.Errorf("api error (%s): %s", res.Status, apiError.StatusMessage)
+	}
+
+	return nil
+}

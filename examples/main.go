@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 
@@ -22,6 +21,5 @@ func main() {
 	client := gopastemyst.NewClient(token)
 	ctx := context.Background()
 
-	UserDetail, err := client.GetUser(ctx, "Sammie156")
-	fmt.Printf("%s", UserDetail.ID)
+	client.PrivatePaste(ctx, "9xx98zrf")
 }
