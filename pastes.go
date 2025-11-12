@@ -493,3 +493,47 @@ func (c *Client) PrivatePaste(ctx context.Context, pasteID string) error {
 
 	return nil
 }
+
+func (c *Client) EditPaste(ctx context.Context, pasteID string, options EditPasteOptions) (*Paste, error) {
+	url := fmt.Sprintf("%s/pastes/%s", c.baseURL, pasteID)
+
+	if c.apiToken == "" {
+		return nil, fmt.Errorf("please provide API token")
+	}
+
+	jsonData, err := json.Marshal(options)
+	if err != nil {
+		return nil, fmt.Errorf("could not marshal edit options: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("could not create http request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.apiToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("http request failed")
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		var apiError APIError
+
+		if err := json.NewDecoder(res.Body).Decode(&apiError); err != nil {
+			return nil, fmt.Errorf("API error (%s): %s", res.Status, apiError.StatusMessage)
+		}
+
+		return nil, fmt.Errorf("API error (%s): %s", res.Status, apiError.StatusMessage)
+	}
+
+	var paste Paste
+	if err := json.NewDecoder(res.Body).Decode(&paste); err != nil {
+		return nil, fmt.Errorf("could not decode json: %w", err)
+	}
+
+	return &paste, nil
+}

@@ -86,6 +86,18 @@ type CompactPasteHistory struct {
 	ID       string    `json:"id"`
 }
 
+type EditPastyOptions struct {
+	ID       string `json:"id,omitempty"`
+	Title    string `json:"title,omitempty"`
+	Content  string `json:"content,omitempty"`
+	Language string `json:"language,omitempty"`
+}
+
+type EditPasteOptions struct {
+	Title   string             `json:"title,omitempty"`
+	Pasties []EditPastyOptions `json:"pasties"`
+}
+
 // ----- USER TYPES -----
 
 type User struct {
